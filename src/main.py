@@ -180,7 +180,7 @@ def arrows_drawing(ax):
         angle -= 180.0
 
     yBall = 50
-    xBall = 20
+    xBall = 0
 
     arrowhead_color = str("red")
     arrow_color = str("red")
@@ -222,17 +222,22 @@ def arrows_drawing(ax):
         if((angle <= 20 and angle >= 0) or (angle <= 180 and angle >= 160)):
             if(colors[i] == activeColor and coordinates[i][1][1] > yBorder):
                 dy = 100
+                dx = 0
                 arrowhead_color = str("purple")
                 arrow_color = str("purple")
                 break
             elif(colors[i] == activeColor and coordinates[i][1][1] < -yBorder):
                 dy = -100
+                dx = 0
                 arrowhead_color = str("brown")
                 arrow_color = str("brown")
                 break
             else:
-                dy = 0
+                # do nothing
+                pass
 
+    print(f"angle={angle:.1f}, dx={dx}, dy={dy}, colors={colors[:10]}")
+            
     length = np.hypot(dx, dy)
     if length == 0:
         return
