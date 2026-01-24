@@ -6,6 +6,7 @@ from tkinter import ttk, messagebox
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import numpy as np
+import math
 
  #Custom colors for categories
 activeColor = 'red'
@@ -14,6 +15,7 @@ disabledColor = 'yellow'
 
 # Load sensor coordinates and label from a JSON file
 def load_coordinates_from_file():
+    global label
     coordinates = []
     try:
         with open('src/coordinates.json', 'r') as file:
@@ -76,8 +78,10 @@ def start_graph():
                 #ACTIVE IF INPUT > THRESHOLD
                 #    
                           #0  1  2  3  4  5  6  7  8  9  10 11 12 13  14  15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
-                values = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0]
-                                                                                                        
+                values = [ 0, 0, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0,  0, 0,  0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0]
+
+
+                                    
 
                 if len(values) != NUM_SENSORS * 2:
                     print("Invalid data length, amount of values read over serial: ", values)
@@ -116,9 +120,8 @@ def start_graph():
    # ser.close()
 
 def arrows_drawing(ax):
-    global colors, arrows_list
+    global arrows_list
 
-    # очистка старых стрелок
     if 'arrows_list' in globals():
         for a in arrows_list:
             a.remove()
@@ -126,41 +129,128 @@ def arrows_drawing(ax):
     else:
         arrows_list = []
 
-    active = {i for i, c in enumerate(colors) if c == activeColor}
+    active_positions = [
+        (x, y)
+        for i, (label, (x, y)) in enumerate(coordinates)
+        if colors[i] == activeColor
+    ]
 
-    FRONT = set(range(32, 36))   # вверх → стрелка вниз
-    BACK  = set(range(36, 40))   # вниз → стрелка вверх
-    LEFT  = set(range(28, 32))   # влево → стрелка вправо
-    RIGHT = set(range(24, 28))   # вправо → стрелка влево
-
-    dx, dy = 0, 0
-
-    if active & FRONT:
-        dy -= 1
-    if active & BACK:
-        dy += 1
-    if active & LEFT:
-        dx += 1
-    if active & RIGHT:
-        dx -= 1
-
-    # если направления нет
-    if dx == 0 and dy == 0:
+    if not active_positions:
         return
 
-    vec = np.array([dx, dy], dtype=float)
-    vec = vec / np.linalg.norm(vec) * 3.0  # длина стрелки
+    xs = [p[0] for p in active_positions]
+    ys = [p[1] for p in active_positions]
+
+    centroid_x = sum(xs) / len(xs)
+    centroid_y = sum(ys) / len(ys)
+
+    left_group = []
+    right_group = []
+
+    for x, y in active_positions:
+        if x > centroid_x:
+            right_group.append((x, y))
+        else:
+            left_group.append((x, y))
+
+    if not left_group or not right_group:
+        dx = centroid_x
+        dy = centroid_y
+    else:
+        lx = sum(x for x, y in left_group) / len(left_group)
+        ly = sum(y for x, y in left_group) / len(left_group)
+        rx = sum(x for x, y in right_group) / len(right_group)
+        ry = sum(y for x, y in right_group) / len(right_group)
+
+        dx = lx - rx
+        dy = ly - ry
+
+
+    angle = 90.0
+
+    angle_rad = math.atan2(dy, dx)
+    angle = angle_rad * 180.0 / math.pi
+
+
+    if(angle < 0):
+        angle += 360.0
+
+   
+    if(angle > 180.0):
+        angle -= 180.0
+
+    yBall = 50
+    xBall = 20
+
+    arrowhead_color = str("red")
+    arrow_color = str("red")
+
+    if((angle <= 20 and angle >= 0) or (angle <= 180 and angle >= 160)):
+        dx = xBall
+        arrowhead_color = str("red")
+        arrow_color = str("yellow")
+
+    elif((angle <= 120 and angle >= 70) or (angle <= 65 and angle >= 46) and yBall > 0):
+    #robot is precies op de lijn
+        dx = 0
+        dy = 100
+        arrowhead_color = str("green")
+        arrow_color = str("yellow")
+        
+
+    elif (angle <= 18 and angle >= 49 and yBall < 0 and xBall > 0):
+        dx = -25
+        dy = -50
+        arrowhead_color = str("orange")
+        arrow_color = str("yellow")
+
+    elif (angle <= 45 and angle >= 20 and yBall > 0):
+        dy = 120
+        arrowhead_color = str("yellow")
+        arrow_color = str("yellow")
+
+    elif (angle <= 160 and angle >= 135):
+        dx = -100
+    else:
+        dx = 0
+
+
+
+    yBorder = 1.5; 
+
+    for i in range(23):
+        if((angle <= 20 and angle >= 0) or (angle <= 180 and angle >= 160)):
+            if(colors[i] == activeColor and coordinates[i][1][1] > yBorder):
+                dy = 100
+                arrowhead_color = str("purple")
+                arrow_color = str("purple")
+                break
+            elif(colors[i] == activeColor and coordinates[i][1][1] < -yBorder):
+                dy = -100
+                arrowhead_color = str("brown")
+                arrow_color = str("brown")
+                break
+            else:
+                dy = 0
+
+    length = np.hypot(dx, dy)
+    if length == 0:
+        return
+
+    dx = dx / length * 3.0
+    dy = dy / length * 3.0
 
     arrow = ax.arrow(
         0, 0,
-        vec[0], vec[1],
+        dx, dy,
         head_width=0.6,
         head_length=0.8,
-        fc='red',
-        ec='red'
+        fc= arrowhead_color,
+        ec= arrow_color
     )
 
     arrows_list.append(arrow)
+
 
 
 
