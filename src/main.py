@@ -70,12 +70,14 @@ def start_graph():
     def update(frame):
         global colors
         try:
-           # ser.write(b'R')
-           # data = ser.readline().decode('utf-8').strip()
-           # if data:
-                values = [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1, 1,1,1,1,
-                          1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1, 1, 1,1,1,1, 1, 1, 1, 1, 1, 1, 1 , 1,        ]
+                # EERSTE 40 INPUT
+                # LAATSTE 40 THRESHOLDS
 
+                #ACTIVE IF INPUT > THRESHOLD
+                #    
+                          #0  1  2  3  4  5  6  7  8  9  10 11 12 13  14  15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40
+                values = [ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0,  0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 , 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 ,0, 0, 0, 0, 0]
+                                                                                                        
 
                 if len(values) != NUM_SENSORS * 2:
                     print("Invalid data length, amount of values read over serial: ", values)
@@ -114,36 +116,52 @@ def start_graph():
    # ser.close()
 
 def arrows_drawing(ax):
-                global colors, coordinates
-                active_sensors = []
-                for i in range(len(colors)):
-                    if colors[i] == activeColor:
-                        active_sensors.append(i)
+    global colors, arrows_list
 
-                # Remove previous arrows (optional: store them globally)
-                if 'arrows_list' not in globals():
-                    global arrows_list
-                    arrows_list = []
-                for arr in arrows_list:
-                    arr.remove()
-                arrows_list.clear()
-                active_sensors = []
-            
-                for i in range(len(colors)):
-                    if colors[i] == activeColor:
-                       active_sensors[i] = i
+    # очистка старых стрелок
+    if 'arrows_list' in globals():
+        for a in arrows_list:
+            a.remove()
+        arrows_list.clear()
+    else:
+        arrows_list = []
 
-                for active in active_sensors:
-                    print(f"Sensor {active} is active.")
-                    if (active >= 28 and active <= 31 ) or (active >= 32 and active <= 35) or (active >= 24 and active <= 27) or (active >= 36 and active <= 39):
-                        print("Distance sensor activated!")
-                        x, y = coordinates[active][1]
-                        vec = np.array([x, y])
-                        if np.linalg.norm(vec) != 0:
-                            vec = -vec / np.linalg.norm(vec) * 1.0  # arrow length = 1.0
+    active = {i for i, c in enumerate(colors) if c == activeColor}
 
-                        arrow = ax.arrow(x, y, vec[0], vec[1], head_width=0.3, head_length=0.5, fc='green', ec='green')
-                        arrows_list.append(arrow)
+    FRONT = set(range(32, 36))   # вверх → стрелка вниз
+    BACK  = set(range(36, 40))   # вниз → стрелка вверх
+    LEFT  = set(range(28, 32))   # влево → стрелка вправо
+    RIGHT = set(range(24, 28))   # вправо → стрелка влево
+
+    dx, dy = 0, 0
+
+    if active & FRONT:
+        dy -= 1
+    if active & BACK:
+        dy += 1
+    if active & LEFT:
+        dx += 1
+    if active & RIGHT:
+        dx -= 1
+
+    # если направления нет
+    if dx == 0 and dy == 0:
+        return
+
+    vec = np.array([dx, dy], dtype=float)
+    vec = vec / np.linalg.norm(vec) * 3.0  # длина стрелки
+
+    arrow = ax.arrow(
+        0, 0,
+        vec[0], vec[1],
+        head_width=0.6,
+        head_length=0.8,
+        fc='red',
+        ec='red'
+    )
+
+    arrows_list.append(arrow)
+
 
 
 
